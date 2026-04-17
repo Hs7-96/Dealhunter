@@ -1,5 +1,5 @@
 // DEAL HUNTER WORKER - backtick-only version, iOS safe
-
+//tes//test
 const CORS_HEADERS = {
 [`Access-Control-Allow-Origin`]: `*`,
 [`Access-Control-Allow-Methods`]: `GET, OPTIONS`,
