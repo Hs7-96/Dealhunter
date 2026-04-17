@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deal Hunter Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a; --surface: #111111; --surface2: #1a1a1a; --border: #222222;
+    --accent: #00ff88; --accent2: #ff3366; --warn: #ffaa00; --text: #f0f0f0;
+    --muted: #555; --glitch: #ff0055;
+    --fresh: #00ff88; --recent: #ffaa00; --stale: #ff3366; --dead: #555;
+    --temp-cold: #666; --temp-warm: #ffaa00; --temp-hot: #ff6600; --temp-fire: #ff0055;
+    --crit: #ff0055; --high: #ff6600; --med: #ffaa00;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
+  body::before { content: ''; position: fixed; inset: 0; background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,136,0.015) 2px, rgba(0,255,136,0.015) 4px); pointer-events: none; z-index: 1000; }
+
+header { border-bottom: 1px solid var(–border); padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; height: 56px; position: sticky; top: 0; background: rgba(10,10,10,0.95); backdrop-filter: blur(12px); z-index: 100; }
+.logo { font-family: ‘Bebas Neue’, sans-serif; font-size: 1.4rem; letter-spacing: 3px; color: var(–accent); }
+.logo span { color: var(–accent2); }
+.status-bar { display: flex; align-items: center; gap: 0.6rem; }
+.pulse-dot { width: 8px; height: 8px; border-radius: 50%; background: var(–accent); box-shadow: 0 0 8px var(–accent); animation: pulse 1.5s ease-in-out infinite; }
+.pulse-dot.inactive { background: var(–muted); box-shadow: none; animation: none; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+.status-text { font-family: ‘Space Mono’, monospace; font-size: 0.6rem; color: var(–muted); text-transform: uppercase; letter-spacing: 1.5px; }
+.status-text.live { color: var(–accent); }
+
+.view-tabs { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(–border); background: var(–surface); }
+.tab { font-family: ‘Space Mono’, monospace; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.8rem 0.3rem; background: transparent; border: none; border-right: 1px solid var(–border); color: var(–muted); cursor: pointer; text-align: center; line-height: 1.3; }
+.tab:last-child { border-right: none; }
+.tab.active { color: var(–accent); background: rgba(0,255,136,0.05); border-top: 2px solid var(–accent); padding-top: calc(0.8rem - 2px); }
+.tab .tab-icon { display: block; font-size: 0.9rem; margin-bottom: 0.2rem; }
+.tab .tab-count { display: block; font-family: ‘Bebas Neue’, sans-serif; font-size: 0.8rem; color: var(–accent); margin-top: 0.1rem; }
+.tab.active .tab-count { color: var(–accent); }
+
+.stats-bar { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(–border); }
+.stat { padding: 0.7rem 0.4rem; border-right: 1px solid var(–border); text-align: center; }
+.stat:last-child { border-right: none; }
+.stat-value { font-family: ‘Bebas Neue’, sans-serif; font-size: 1.4rem; line-height: 1; color: var(–accent); }
+.stat-value.red { color: var(–crit); }
+.stat-value.orange { color: var(–high); }
+.stat-value.warn { color: var(–warn); }
+.stat-label { font-family: ‘Space Mono’, monospace; font-size: 0.48rem; text-transform: uppercase; letter-spacing: 1px; color: var(–muted); margin-top: 0.25rem; }
+
+.filters { padding: 0.6rem 0.8rem; display: flex; gap: 0.3rem; flex-wrap: wrap; border-bottom: 1px solid var(–border); align-items: center; }
+.chip { font-family: ‘Space Mono’, monospace; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 0.28rem 0.55rem; border: 1px solid var(–border); background: transparent; color: var(–muted); cursor: pointer; border-radius: 2px; }
+.chip.active { border-color: var(–accent); color: var(–accent); background: rgba(0,255,136,0.06); }
+.sliders { width: 100%; display: flex; gap: 0.8rem; margin-top: 0.4rem; padding-top: 0.4rem; border-top: 1px solid var(–border); }
+.slider-item { flex: 1; display: flex; align-items: center; gap: 0.35rem; }
+.slider-item label { font-family: ‘Space Mono’, monospace; font-size: 0.48rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(–muted); min-width: 34px; }
+input[type=range] { -webkit-appearance: none; flex: 1; height: 2px; background: var(–border); outline: none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(–accent); cursor: pointer; }
+input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(–accent); cursor: pointer; border: none; }
+.slider-val { font-family: ‘Bebas Neue’, sans-serif; font-size: 0.9rem; color: var(–accent); min-width: 38px; text-align: right; }
+
+.feed-wrap { padding: 0.7rem; }
+.feed-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; }
+.feed-title { font-family: ‘Space Mono’, monospace; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 2px; color: var(–muted); }
+.last-updated { font-family: ‘Space Mono’, monospace; font-size: 0.5rem; color: var(–muted); }
+
+.deals-grid { display: grid; grid-template-columns: 1fr; gap: 1px; background: var(–border); }
+@media (min-width: 700px) { .deals-grid { grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); } }
+
+.deal-card { background: var(–surface); padding: 0.9rem; position: relative; animation: slideIn 0.3s ease; }
+@keyframes slideIn { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+.deal-card.critical { border-left: 4px solid var(–crit); box-shadow: 0 0 20px rgba(255,0,85,0.15); }
+.deal-card.high { border-left: 4px solid var(–high); }
+.deal-card.medium { border-left: 4px solid var(–med); }
+.deal-card.is-dead { opacity: 0.5; }
+
+/* Score badge */
+.score-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.6rem; }
+.score-badge { font-family: ‘Bebas Neue’, sans-serif; font-size: 0.9rem; padding: 0.2rem 0.55rem; border-radius: 2px; letter-spacing: 1px; }
+.score-badge.critical { background: var(–crit); color: var(–bg); animation: critPulse 1.5s infinite; }
+.score-badge.high { background: var(–high); color: var(–bg); }
+.score-badge.medium { background: var(–med); color: var(–bg); }
+@keyframes critPulse { 0%,100%{box-shadow:0 0 8px rgba(255,0,85,.4)} 50%{box-shadow:0 0 20px rgba(255,0,85,.8)} }
+
+.source-badge { font-family: ‘Space Mono’, monospace; font-size: 0.5rem; letter-spacing: 1px; padding: 0.18rem 0.4rem; border-radius: 2px; text-transform: uppercase; }
+.source-badge.hot { background: rgba(255,102,0,0.15); color: var(–temp-hot); border: 1px solid rgba(255,102,0,0.4); }
+.source-badge.new { background: rgba(0,255,136,0.12); color: var(–accent); border: 1px solid rgba(0,255,136,0.4); }
+
+/* Signal pills */
+.signal-row { display: flex; gap: 0.3rem; flex-wrap: wrap; margin-bottom: 0.6rem; }
+.signal { font-family: ‘Space Mono’, monospace; font-size: 0.5rem; letter-spacing: 1px; padding: 0.2rem 0.4rem; border-radius: 2px; font-weight: 700; text-transform: uppercase; }
+.signal.glitch { background: rgba(255,0,85,0.15); color: var(–glitch); border: 1px solid rgba(255,0,85,0.4); animation: critPulse 1.5s infinite; }
+
+/* Primary row: discount + temp + age */
+.primary-row { display: flex; gap: 0.4rem; margin-bottom: 0.7rem; align-items: stretch; }
+.discount-pill { font-family: ‘Bebas Neue’, sans-serif; font-size: 1.3rem; line-height: 1; color: var(–bg); background: var(–accent); padding: 0.4rem 0.5rem; min-width: 54px; text-align: center; border-radius: 2px; display: flex; align-items: center; justify-content: center; }
+.discount-pill.massive { background: var(–accent2); }
+.discount-pill.none { background: rgba(100,100,100,0.2); color: var(–muted); font-size: 0.8rem; }
+.temp-pill { font-family: ‘Bebas Neue’, sans-serif; font-size: 1.1rem; line-height: 1; padding: 0.4rem 0.5rem; min-width: 54px; text-align: center; border-radius: 2px; display: flex; align-items: center; justify-content: center; gap: 0.2rem; }
+.temp-pill.cold { background: rgba(100,100,100,0.2); color: var(–temp-cold); }
+.temp-pill.warm { background: rgba(255,170,0,0.15); color: var(–temp-warm); border: 1px solid rgba(255,170,0,0.3); }
+.temp-pill.hot { background: rgba(255,102,0,0.15); color: var(–temp-hot); border: 1px solid rgba(255,102,0,0.4); }
+.temp-pill.fire { background: rgba(255,0,85,0.15); color: var(–temp-fire); border: 1px solid rgba(255,0,85,0.5); animation: critPulse 1.5s infinite; }
+.age-pill { font-family: ‘Space Mono’, monospace; font-size: 0.55rem; letter-spacing: 0.5px; padding: 0 0.4rem; border-radius: 2px; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; gap: 0.25rem; flex: 1; justify-content: center; }
+.age-pill.fresh { background: rgba(0,255,136,0.15); color: var(–fresh); border: 1px solid rgba(0,255,136,0.5); }
+.age-pill.fresh::before { content: ‘●’; animation: pulse 1s infinite; }
+.age-pill.recent { background: rgba(255,170,0,0.12); color: var(–recent); border: 1px solid rgba(255,170,0,0.4); }
+.age-pill.recent::before { content: ‘●’; }
+.age-pill.stale { background: rgba(255,51,102,0.1); color: var(–stale); border: 1px solid rgba(255,51,102,0.3); }
+.age-pill.stale::before { content: ‘◐’; }
+.age-pill.dead { background: rgba(100,100,100,0.08); color: var(–dead); border: 1px solid var(–border); }
+.age-pill.dead::before { content: ‘○’; }
+
+.deal-title { font-size: 0.86rem; font-weight: 500; line-height: 1.35; color: var(–text); margin-bottom: 0.6rem; }
+
+.retailer-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem; flex-wrap: wrap; }
+.retailer-badge { font-family: ‘Space Mono’, monospace; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.22rem 0.45rem; background: rgba(255,170,0,0.08); border: 1px solid rgba(255,170,0,0.3); color: var(–warn); }
+.trust-badge { font-family: ‘Space Mono’, monospace; font-size: 0.55rem; padding: 0.22rem 0.4rem; border-radius: 2px; }
+.trust-badge.good { background: rgba(0,255,136,0.1); color: var(–accent); border: 1px solid rgba(0,255,136,0.3); }
+.trust-badge.mid { background: rgba(255,170,0,0.1); color: var(–warn); border: 1px solid rgba(255,170,0,0.3); }
+.trust-badge.low { background: rgba(255,51,102,0.1); color: var(–accent2); border: 1px solid rgba(255,51,102,0.3); }
+.trust-badge.unknown { background: rgba(100,100,100,0.1); color: var(–muted); border: 1px solid var(–border); }
+.retailer-search-link { font-family: ‘Space Mono’, monospace; font-size: 0.52rem; color: var(–muted); text-decoration: none; border-bottom: 1px dotted var(–muted); margin-left: auto; }
+
+.price-row { display: flex; align-items: baseline; gap: 0.6rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
+.price-now { font-family: ‘Bebas Neue’, sans-serif; font-size: 1.3rem; color: var(–accent); }
+.price-was { font-family: ‘Space Mono’, monospace; font-size: 0.68rem; color: var(–muted); text-decoration: line-through; }
+.price-unverified { font-family: ‘Space Mono’, monospace; font-size: 0.52rem; color: var(–warn); font-style: italic; }
+.price-missing { font-family: ‘Space Mono’, monospace; font-size: 0.58rem; color: var(–muted); font-style: italic; }
+.category-tag { font-family: ‘Space Mono’, monospace; font-size: 0.5rem; text-transform: uppercase; letter-spacing: 1px; padding: 0.18rem 0.4rem; border: 1px solid var(–border); color: var(–muted); margin-left: auto; }
+
+/* eBay margin placeholder */
+.margin-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.55rem; background: rgba(100,100,100,0.06); border-radius: 2px; margin-bottom: 0.7rem; }
+.margin-label { font-family: ‘Space Mono’, monospace; font-size: 0.5rem; text-transform: uppercase; letter-spacing: 1px; color: var(–muted); }
+.margin-value { font-family: ‘Space Mono’, monospace; font-size: 0.6rem; color: var(–muted); font-style: italic; flex: 1; }
+
+.deal-footer { display: flex; align-items: center; gap: 0.35rem; }
+.go-btn { font-family: ‘Space Mono’, monospace; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 1.5px; padding: 0.5rem 0.6rem; background: transparent; border: 1px solid var(–accent); color: var(–accent); text-decoration: none; display: inline-block; flex: 1; text-align: center; min-width: 0; }
+.go-btn.buy { border-color: var(–warn); color: var(–warn); }
+.go-btn.ebay { border-color: #0064d2; color: #0064d2; }
+
+.empty-state { grid-column: 1/-1; text-align: center; padding: 3rem 1rem; }
+.empty-icon { font-family: ‘Bebas Neue’, sans-serif; font-size: 2.5rem; color: var(–border); letter-spacing: 5px; margin-bottom: 0.8rem; }
+.empty-text { font-family: ‘Space Mono’, monospace; font-size: 0.6rem; color: var(–muted); letter-spacing: 1.5px; text-transform: uppercase; line-height: 1.5; }
+
+.loading-bar { height: 2px; background: var(–border); position: relative; overflow: hidden; }
+.loading-fill { position: absolute; top: 0; left: 0; height: 100%; background: var(–accent); width: 0%; transition: width 0.1s linear; }
+.error-banner { background: rgba(255,51,102,0.08); border: 1px solid rgba(255,51,102,0.2); color: var(–accent2); font-family: ‘Space Mono’, monospace; font-size: 0.58rem; padding: 0.6rem 0.8rem; display: none; line-height: 1.4; }
+.error-banner.show { display: block; }
+
+.start-btn { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); font-family: ‘Bebas Neue’, sans-serif; font-size: 1.1rem; letter-spacing: 4px; padding: 0.8rem 2rem; background: var(–accent); color: var(–bg); border: none; cursor: pointer; box-shadow: 0 0 30px rgba(0,255,136,0.4); z-index: 200; border-radius: 2px; }
+</style>
+
+</head>
+<body>
+
+<header>
+  <div class="logo">DEAL<span>HUNTER</span></div>
+  <div class="status-bar">
+    <div class="pulse-dot inactive" id="pulseDot"></div>
+    <span class="status-text" id="statusText">OFFLINE</span>
+  </div>
+</header>
+
+<div class="loading-bar"><div class="loading-fill" id="loadingFill"></div></div>
+<div class="error-banner" id="errorBanner"></div>
+
+<div class="view-tabs">
+  <button class="tab active" data-mode="all" onclick="setMode(this)">
+    <span class="tab-icon">🎯</span>All
+    <span class="tab-count" id="countAll">0</span>
+  </button>
+  <button class="tab" data-mode="critical" onclick="setMode(this)">
+    <span class="tab-icon">🚨</span>Critical
+    <span class="tab-count" id="countCritical">0</span>
+  </button>
+  <button class="tab" data-mode="glitch" onclick="setMode(this)">
+    <span class="tab-icon">⚡</span>Errors
+    <span class="tab-count" id="countGlitch">0</span>
+  </button>
+  <button class="tab" data-mode="fresh" onclick="setMode(this)">
+    <span class="tab-icon">🌱</span>Fresh
+    <span class="tab-count" id="countFresh">0</span>
+  </button>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Total</div></div>
+  <div class="stat"><div class="stat-value red" id="statCrit">0</div><div class="stat-label">Critical</div></div>
+  <div class="stat"><div class="stat-value orange" id="statHigh">0</div><div class="stat-label">High</div></div>
+  <div class="stat"><div class="stat-value" id="statRefresh">30s</div><div class="stat-label">Refresh</div></div>
+</div>
+
+<div class="filters">
+  <button class="chip active" data-cat="all" onclick="toggleCat(this)">All Cats</button>
+  <button class="chip" data-cat="Electronics" onclick="toggleCat(this)">Electronics</button>
+  <button class="chip" data-cat="Gaming" onclick="toggleCat(this)">Gaming</button>
+  <button class="chip" data-cat="Toys" onclick="toggleCat(this)">Toys</button>
+  <button class="chip" data-cat="Fashion" onclick="toggleCat(this)">Fashion</button>
+  <button class="chip" data-cat="Beauty" onclick="toggleCat(this)">Beauty</button>
+  <button class="chip" data-cat="Computing" onclick="toggleCat(this)">Computing</button>
+  <div class="sliders">
+    <div class="slider-item">
+      <label>Min %</label>
+      <input type="range" id="discSlider" min="0" max="95" value="0" oninput="updateDiscount(this)">
+      <span class="slider-val" id="discVal">0%</span>
+    </div>
+    <div class="slider-item">
+      <label>Min Score</label>
+      <input type="range" id="scoreSlider" min="0" max="800" value="200" step="50" oninput="updateScore(this)">
+      <span class="slider-val" id="scoreVal">200</span>
+    </div>
+  </div>
+</div>
+
+<div class="feed-wrap">
+  <div class="feed-header">
+    <span class="feed-title" id="modeLabel">All Opportunities</span>
+    <span class="last-updated" id="lastUpdated">—</span>
+  </div>
+  <div class="deals-grid" id="dealsGrid">
+    <div class="empty-state">
+      <div class="empty-icon">STANDBY</div>
+      <div class="empty-text">Tap start to begin<br>monitoring live deals</div>
+    </div>
+  </div>
+</div>
+
+<div style="height: 100px;"></div>
+
+<button onclick="startMonitor()" id="startBtn" class="start-btn">START</button>
+
+<script>
+const PROXY_URL = 'https://sweet-block-34d2.hamzahsarang-b15.workers.dev/';
+const INTERVAL = 30000;
+
+let allDeals = [];
+let mode = 'all';
+let activeCat = 'all', minDiscount = 0, minScore = 200;
+let countdown = 30, running = false;
+
+function startMonitor() {
+  document.getElementById('startBtn').style.display = 'none';
+  running = true; setStatus(true);
+  fetchDeals();
+  setInterval(fetchDeals, INTERVAL);
+  startCountdown();
+  setInterval(renderDeals, 30000);
+}
+
+function setStatus(live) {
+  document.getElementById('pulseDot').className = 'pulse-dot' + (live ? ' live' : ' inactive');
+  const txt = document.getElementById('statusText');
+  txt.textContent = live ? 'LIVE' : 'OFFLINE';
+  txt.className = 'status-text' + (live ? ' live' : '');
+}
+
+function startCountdown() {
+  countdown = 30;
+  document.getElementById('statRefresh').textContent = countdown + 's';
+  const cd = setInterval(() => {
+    document.getElementById('statRefresh').textContent = (--countdown) + 's';
+    if (countdown <= 0) { clearInterval(cd); if (running) startCountdown(); }
+  }, 1000);
+}
+
+async function fetchDeals() {
+  animateLoading(); hideError();
+  try {
+    const res = await fetch(PROXY_URL);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    if (!data.deals) throw new Error('No deals field');
+    allDeals = data.deals.map(d => ({
+      ...d,
+      time: new Date(d.pubDate)
+    }));
+    updateStats();
+    renderDeals();
+    document.getElementById('lastUpdated').textContent = 
+      `Hot: ${data.hotCount} · New: ${data.newCount} · Scored: ${data.total} · ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    showError('Worker error: ' + e.message);
+  }
+}
+
+function updateStats() {
+  const crit = allDeals.filter(d => d.alertLevel === 'critical').length;
+  const high = allDeals.filter(d => d.alertLevel === 'high').length;
+  const glitch = allDeals.filter(d => d.isGlitch).length;
+  const fresh = allDeals.filter(d => d.ageMins < 60).length;
+
+  document.getElementById('statTotal').textContent = allDeals.length;
+  document.getElementById('statCrit').textContent = crit;
+  document.getElementById('statHigh').textContent = high;
+  document.getElementById('countAll').textContent = allDeals.length;
+  document.getElementById('countCritical').textContent = crit;
+  document.getElementById('countGlitch').textContent = glitch;
+  document.getElementById('countFresh').textContent = fresh;
+}
+
+function getFreshness(ageMins) {
+  if (ageMins < 15) return { label: ageMins < 1 ? 'JUST NOW' : ageMins + ' MIN', cls: 'fresh' };
+  if (ageMins < 60) return { label: ageMins + ' MIN', cls: 'recent' };
+  if (ageMins < 240) return { label: Math.floor(ageMins/60) + 'H', cls: 'stale' };
+  const hrs = Math.floor(ageMins/60);
+  if (hrs < 24) return { label: hrs + 'H', cls: 'dead' };
+  return { label: Math.floor(hrs/24) + 'D', cls: 'dead' };
+}
+
+function getTempClass(temp) {
+  if (temp < 100) return 'cold';
+  if (temp < 300) return 'warm';
+  if (temp < 800) return 'hot';
+  return 'fire';
+}
+
+function filterDeals() {
+  let f = allDeals.slice();
+  if (mode === 'critical') f = f.filter(d => d.alertLevel === 'critical');
+  else if (mode === 'glitch') f = f.filter(d => d.isGlitch);
+  else if (mode === 'fresh') f = f.filter(d => d.ageMins < 60);
+
+  if (activeCat !== 'all') f = f.filter(d => d.category === activeCat);
+  if (minDiscount > 0) f = f.filter(d => d.discount >= minDiscount);
+  if (minScore > 0) f = f.filter(d => d.score >= minScore);
+
+  return f;
+}
+
+function retailerRow(d) {
+  let trustClass = 'unknown', trustText = 'Trust: ?';
+  if (d.retailerTrust !== null) {
+    if (d.retailerTrust >= 4.0) { trustClass = 'good'; trustText = `⭐ ${d.retailerTrust}`; }
+    else if (d.retailerTrust >= 3.0) { trustClass = 'mid'; trustText = `⭐ ${d.retailerTrust}`; }
+    else { trustClass = 'low'; trustText = `⚠ ${d.retailerTrust}`; }
+  }
+  const retailerText = d.retailer || 'Unknown';
+  const q = encodeURIComponent((d.retailer || '') + ' ' + d.title.split(' ').slice(0,6).join(' '));
+  return `<div class="retailer-row">
+    <span class="retailer-badge">🏪 ${retailerText}</span>
+    <span class="trust-badge ${trustClass}">${trustText}</span>
+    <a href="https://www.trustpilot.com/search?query=${encodeURIComponent(d.retailer || '')}" target="_blank" class="retailer-search-link">Trustpilot →</a>
+  </div>`;
+}
+
+function priceRow(d) {
+  if (d.priceNow === null) {
+    return `<div class="price-row"><span class="price-missing">No price detected — check deal page</span></div>`;
+  }
+  const wasHtml = d.priceWas ? `<span class="price-was">£${d.priceWas.toFixed(2)}</span>` : '';
+  const conf = d.priceConfidence === 'low' ? '<span class="price-unverified">⚠ verify</span>' : '';
+  return `<div class="price-row">
+    <span class="price-now">£${d.priceNow.toFixed(2)}</span>
+    ${wasHtml}
+    ${conf}
+    <span class="category-tag">${d.category}</span>
+  </div>`;
+}
+
+function marginRow(d) {
+  if (!d.priceNow) return '';
+  const ebaySearch = encodeURIComponent(d.title.split(' ').slice(0,6).join(' ') + ' sold');
+  return `<div class="margin-row">
+    <span class="margin-label">📈 eBay</span>
+    <span class="margin-value">Check manually — auto margin calc coming soon</span>
+    <a href="https://www.ebay.co.uk/sch/i.html?_nkw=${ebaySearch}&LH_Sold=1&LH_Complete=1" target="_blank" class="retailer-search-link">Sold listings →</a>
+  </div>`;
+}
+
+function renderDeals() {
+  const grid = document.getElementById('dealsGrid');
+  const f = filterDeals();
+
+  if (!f.length) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">NONE</div><div class="empty-text">No deals match filters<br>try another tab or lower the score</div></div>`;
+    return;
+  }
+
+  grid.innerHTML = f.map(d => {
+    const fresh = getFreshness(d.ageMins);
+    const tempCls = getTempClass(d.temp);
+    const isDead = fresh.cls === 'dead';
+
+    const discountPill = d.discount > 0
+      ? `<div class="discount-pill ${d.discount >= 70 ? 'massive' : ''}">${d.discount}%</div>`
+      : `<div class="discount-pill none">—</div>`;
+
+    const tempEmoji = d.temp >= 800 ? '🔥' : d.temp >= 300 ? '♨' : d.temp >= 100 ? '•' : '·';
+    const scoreCls = d.alertLevel === 'critical' ? 'critical' : d.alertLevel === 'high' ? 'high' : 'medium';
+
+    const signals = [];
+    if (d.isGlitch) signals.push('<span class="signal glitch">⚡ PRICE ERROR</span>');
+
+    return `
+    <div class="deal-card ${d.alertLevel} ${isDead?'is-dead':''}">
+      <div class="score-row">
+        <span class="score-badge ${scoreCls}">🎯 ${d.score}</span>
+        <span class="source-badge ${d.source}">${d.source === 'hot' ? '🔥 HOT' : '✨ NEW'}</span>
+      </div>
+      ${signals.length ? `<div class="signal-row">${signals.join('')}</div>` : ''}
+      <div class="primary-row">
+        ${discountPill}
+        <div class="temp-pill ${tempCls}"><span>${tempEmoji}</span>${d.temp}°</div>
+        <div class="age-pill ${fresh.cls}">${fresh.label}</div>
+      </div>
+      <div class="deal-title">${d.title.substring(0,100)}${d.title.length>100?'…':''}</div>
+      ${retailerRow(d)}
+      ${priceRow(d)}
+      ${marginRow(d)}
+      <div class="deal-footer">
+        ${d.externalLink ? `<a href="${d.externalLink}" target="_blank" class="go-btn buy">BUY</a>` : ''}
+        <a href="${d.hotukLink}" target="_blank" class="go-btn">DEAL PAGE</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setMode(btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  mode = btn.dataset.mode;
+  const labels = {all:'🎯 All Opportunities',critical:'🚨 Critical Alerts',glitch:'⚡ Price Errors',fresh:'🌱 Fresh Deals'};
+  document.getElementById('modeLabel').textContent = labels[mode];
+  renderDeals();
+}
+function toggleCat(btn) { document.querySelectorAll('.chip[data-cat]').forEach(c=>c.classList.remove('active')); btn.classList.add('active'); activeCat=btn.dataset.cat; renderDeals(); }
+function updateDiscount(el) { minDiscount=parseInt(el.value); document.getElementById('discVal').textContent=minDiscount+'%'; renderDeals(); }
+function updateScore(el) { minScore=parseInt(el.value); document.getElementById('scoreVal').textContent=minScore; renderDeals(); }
+
+function animateLoading() {
+  const f=document.getElementById('loadingFill'); f.style.width='0%';
+  setTimeout(()=>f.style.width='60%',50); setTimeout(()=>f.style.width='100%',800); setTimeout(()=>f.style.width='0%',1200);
+}
+function showError(msg) { const e=document.getElementById('errorBanner'); e.textContent='⚠ '+msg; e.classList.add('show'); }
+function hideError() { document.getElementById('errorBanner').classList.remove('show'); }
+</script>
+
+</body>
+</html>
